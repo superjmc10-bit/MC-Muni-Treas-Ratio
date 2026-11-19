@@ -1,0 +1,10 @@
+# Issuance runs well above forecasts while fund demand fades.
+meta:
+  scenario_name: "Supply glut + weak demand"
+  description: "$680bn of issuance, flows ~ -$1bn a month, more frequent liquidity events."
+supply:
+  annual_gross_issuance: 680
+flows:
+  expected: -1.0
+liquidity_events:
+  annual_intensity: 0.35

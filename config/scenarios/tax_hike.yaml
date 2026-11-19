@@ -1,0 +1,10 @@
+# Top federal rate returns to 39.6% (+2.6pp) early in the horizon. Higher
+# rates make tax exemption more valuable -> ratios should fall (richen).
+meta:
+  scenario_name: "Tax hike (39.6% top rate)"
+  description: "Top bracket rises 2.6pp in month 3; NIIT unchanged."
+tax:
+  change_prob_12m: 1.0
+  change_mean: 0.026
+  change_sd: 0.0
+  change_month: 3
