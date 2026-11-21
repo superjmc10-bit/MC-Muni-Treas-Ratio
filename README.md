@@ -15,7 +15,18 @@ shocks). The starting values are calibrated to the market as of
 
 ---
 
-## Quick start
+## Run it in your browser (GitHub Codespaces)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/superjmc10-bit/MC-Muni-Treas-Ratio/tree/claude/peaceful-johnson-7jyvgi)
+
+Click the button, then **Create codespace**. The first build takes about
+2-3 minutes. After that, the codespace installs everything and opens the
+interactive app on its own. For a full browser tab, open the **Ports** tab
+at the bottom and click the globe icon next to port 8501. The terminal works
+for the commands below too. **Stop the codespace when you're done**, because
+idle time counts against your free monthly hours.
+
+## Quick start (your own machine)
 
 ```bash
 pip install -r requirements.txt
