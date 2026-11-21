@@ -681,9 +681,9 @@ def scenario_comparison_table(results: dict[str, SimulationResult]) -> pd.DataFr
     return pd.DataFrame(rows)
 
 
-def buffer_png(fig: plt.Figure) -> bytes:
+def buffer_png(fig: plt.Figure, dpi: int = 150) -> bytes:
     """PNG bytes of a figure (used by the Streamlit app)."""
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", dpi=150)
+    fig.savefig(buf, format="png", dpi=dpi)
     plt.close(fig)
     return buf.getvalue()

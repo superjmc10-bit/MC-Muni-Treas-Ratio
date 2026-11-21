@@ -22,8 +22,10 @@ shocks). The starting values are calibrated to the market as of
 Click the button, then **Create codespace**. The first build takes about
 2-3 minutes. After that, the codespace installs everything and opens the
 interactive app on its own. For a full browser tab, open the **Ports** tab
-at the bottom and click the globe icon next to port 8501. The terminal works
-for the commands below too. **Stop the codespace when you're done**, because
+at the bottom and click the globe icon next to port 8501. In the app, adjust
+inputs in the sidebar and press **Run simulation**. Each run takes well
+under a second, and results are cached, so switching between views is
+instant. The terminal works for the commands below too. **Stop the codespace when you're done**, because
 idle time counts against your free monthly hours.
 
 ## Quick start (your own machine)
