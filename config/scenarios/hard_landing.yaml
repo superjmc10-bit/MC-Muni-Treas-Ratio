@@ -1,0 +1,13 @@
+# Over-tightening tips the economy into recession. The Treasury path is left
+# 'unchanged' on purpose: the model's recession mechanics (Fed cuts,
+# flight-to-quality, wider credit, outflows) generate the rally themselves.
+meta:
+  scenario_name: "Hard landing (recession)"
+  description: "Recession very likely within 12 months; Fed cuts, curve bull-steepens, credit widens, funds see outflows."
+treasury:
+  center: none            # let the recession rally show up in the curve
+macro:
+  recession: {prob_12m: 0.90}
+  hy_oas: {long_run: 450}
+flows:
+  expected: 2.0

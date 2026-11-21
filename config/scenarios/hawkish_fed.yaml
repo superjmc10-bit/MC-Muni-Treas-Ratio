@@ -1,0 +1,14 @@
+# Inflation re-accelerates and the Fed hikes more than priced (bear flattener).
+meta:
+  scenario_name: "Hawkish Fed (bear flattener)"
+  description: "Core inflation stays ~3.5%+, the Fed hikes ~50bp more than priced: 2Y +60bp, 10Y +30bp, 30Y +15bp."
+treasury:
+  path_mode: shifts
+  shifts_bp: {2: 60, 5: 45, 10: 30, 30: 15}
+macro:
+  inflation: {target_12m: 3.6}
+  recession: {prob_12m: 0.30}
+  fed:
+    market_path_shift_bp: 50
+  rate_vol: {long_run: 115}
+  hy_oas: {long_run: 400}

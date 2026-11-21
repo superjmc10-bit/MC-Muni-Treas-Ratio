@@ -1,0 +1,5 @@
+# Treasury curve rolls to today's 12-month forwards (the market's own path).
+meta:
+  scenario_name: "Curve to forwards"
+treasury:
+  path_mode: forwards

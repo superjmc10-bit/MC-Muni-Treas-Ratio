@@ -1,0 +1,296 @@
+# =============================================================================
+#  Muni / Treasury Ratio Monte Carlo  -  BASE CASE
+# =============================================================================
+#  As-of 2026-11-19. Market levels are approximations taken from public
+#  commentary in mid-November 2026 (see docs/METHODOLOGY.md, "Calibration").
+#  Replace the starred (*) inputs with your own MMD / Bloomberg / Treasury
+#  data before using the output for anything that matters.
+#
+#  Units
+#    yields ............ percent          (5.07 means 5.07%)
+#    ratios ............ decimals         (0.64 means 64%)
+#    spreads ........... basis points where the key ends in _bp
+#    dollar amounts .... $ billions
+#    tenor keys ........ years            (0.25 = 3 months)
+#
+#  Every value here can be changed three ways:
+#    1. edit this file (or copy it and pass --config my.yaml)
+#    2. layer a scenario file on top:   --scenario bear_steepener
+#    3. override one value at the CLI:  --set treasury.curve_start.10=4.85
+#                                       --set "treasury.curve_start[0.25]=4.1"
+# =============================================================================
+
+meta:
+  as_of: "2026-11-19"
+  scenario_name: "Base case"
+  description: >
+    Hawkish Fed (3.75-4.00% after the September hike, December hike ~80%
+    priced), 10Y UST ~5.1%, sticky ~3.5%+ inflation, solid growth (Q3 GDP
+    3.4%, unemployment 4.1%), a third straight year of record muni supply,
+    strong but slowing fund inflows, tight credit spreads.
+
+simulation:
+  n_paths: 10000
+  horizon_months: 12
+  seed: 20261119
+  report_months: [3, 6, 12]          # horizons used in probability tables
+
+# Maturities (years) at which ratios are simulated. Any per-tenor setting
+# below is linearly interpolated, so you can add e.g. 15 without editing
+# every block.
+tenors: [2, 5, 10, 20, 30]
+
+# -----------------------------------------------------------------------------
+#  TREASURY CURVE  (the denominator)
+# -----------------------------------------------------------------------------
+treasury:
+  # (*) Starting par curve, %. Approx. close 2026-11-18 (2Y 4.80, 10Y 5.07,
+  #     30Y 5.41). Paste the latest Treasury par yield curve here.
+  curve_start:
+    0.25: 4.05
+    1: 4.45
+    2: 4.80
+    3: 4.83
+    5: 4.90
+    7: 4.98
+    10: 5.07
+    20: 5.45
+    30: 5.41
+
+  # The EXPECTED curve path. The simulation adds random shocks around it.
+  #   unchanged : centred on today's curve (random walk, a hard benchmark to beat)
+  #   forwards  : rolls toward the 12m-forward curve implied by today's curve
+  #   shifts    : today's curve plus `shifts_bp` by the horizon (linear glide)
+  #   custom    : glides to `curve_target` (a full curve, %) by the horizon
+  path_mode: unchanged
+  shifts_bp: {2: 0, 10: 0, 30: 0}    # used when path_mode = shifts
+  curve_target: {}                   # used when path_mode = custom
+
+  # Shock structure (Nelson-Siegel level / slope / curvature)
+  ns_lambda: 0.7308                  # decay per year (Diebold-Li)
+  factor_vol_bp: {level: 70, slope: 60, curvature: 80}   # annualised, at MOVE = reference
+  factor_corr: {level_slope: -0.30, level_curvature: 0.10, slope_curvature: 0.20}
+  factor_mean_reversion: 0.15        # per year; pull of shocks back to the expected path
+  center: mean                       # mean | median | none: make the expected path the mean outcome
+
+  # Macro links
+  ff_passthrough_tau: 2.5            # yrs; how far out fed-funds surprises reach the curve
+  inflation_to_level: 0.25           # level move (pp) per 1pp inflation surprise
+  recession_level_shock_bp: -40      # flight-to-quality rally on recession entry
+  term_premium:                      # long-end premium (fiscal / supply view)
+    change_bp: 0                     # expected change by the horizon
+    vol_bp: 35
+    mean_reversion: 0.5
+
+# -----------------------------------------------------------------------------
+#  MACRO BLOCK
+# -----------------------------------------------------------------------------
+macro:
+  inflation:                         # CPI y/y, %
+    start: 3.6                       # (*) Sep-26 headline 3.7%; Oct core +0.3% m/m (3rd month)
+    target_12m: 3.0                  # where it drifts absent shocks (your view)
+    mean_reversion: 0.8
+    vol: 0.6
+    recession_drift: -1.5            # pp per year while in recession
+
+  unemployment:                      # %
+    start: 4.1                       # (*) Oct-26: 4.1%, payrolls +165k
+    target_12m: 4.3
+    mean_reversion: 0.5
+    vol: 0.35
+    recession_drift: 2.0
+
+  recession:
+    start_in_recession: false
+    prob_12m: 0.20                   # chance a recession starts within 12m, at today's conditions
+    avg_duration_months: 10
+    ff_sensitivity: 0.25             # hazard tilt per 1pp of fed funds above the expected path
+    hy_sensitivity: 0.30             # hazard tilt per +100bp of HY OAS above its expected path
+
+  fed:
+    start_mid: 3.875                 # (*) 3.75-4.00% target range
+    meeting_months: [1, 3, 4, 6, 7, 9, 10, 12]
+    # (*) Expected mid-rate after each meeting (approx. futures pricing,
+    #     mid-Nov 2026: ~80% odds of a December hike, more hikes in 2027).
+    market_path:
+      "2026-12": 4.075
+      "2027-01": 4.10
+      "2027-03": 4.20
+      "2027-04": 4.27
+      "2027-06": 4.35
+      "2027-07": 4.40
+      "2027-09": 4.45
+      "2027-10": 4.48
+    market_path_shift_bp: 0          # quick dial: move the whole expected path
+    inflation_reaction: 0.75         # FF deviation per 1pp inflation surprise
+    unemployment_reaction: 1.0       # FF cut per 1pp unemployment surprise
+    recession_cut_per_month_bp: 25   # extra easing while in recession (on top of the
+    recession_max_cut_bp: 200        # unemployment reaction above)
+    recession_cut_recovery: 0.05     # share of recession cuts unwound per month after it ends
+    max_move_bp: 50                  # per meeting outside a recession
+    floor: 0.125
+
+  rate_vol:                          # MOVE index (Treasury implied vol)
+    start: 100                       # (*)
+    long_run: 95
+    reference: 105                   # ~5y average; factor vols are quoted at this level
+    mean_reversion: 2.0
+    vol: 0.50                        # log-vol per sqrt(year)
+    recession_jump: 0.30             # +30% on recession entry
+
+  hy_oas:                            # US HY corporate OAS, bp (risk appetite)
+    start: 300                       # (*)
+    long_run: 340
+    recession_level: 700
+    reference: 380                   # ~5y average
+    mean_reversion: 1.5
+    vol: 0.40
+
+  # Correlations between monthly macro shocks. Names: inflation, unemployment,
+  # move, hy, level, slope, curvature, term_premium. Unlisted pairs are 0.
+  shock_correlations:
+    inflation_level: 0.30
+    inflation_unemployment: -0.20
+    unemployment_level: -0.20
+    move_hy: 0.50
+    move_level: 0.10
+    hy_level: -0.20
+    hy_unemployment: 0.30
+    move_term_premium: 0.30
+
+# -----------------------------------------------------------------------------
+#  MUNI BLOCK  (the numerator)
+# -----------------------------------------------------------------------------
+muni:
+  # (*) Starting MMD AAA curve, %. Approx. 2026-11-18: 10Y ~3.25, 30Y ~4.70.
+  #     Alternatively set `ratio_start` (decimals) and it takes precedence.
+  curve_start: {2: 2.93, 5: 3.03, 10: 3.25, 20: 4.35, 30: 4.70}
+  ratio_start: {}
+
+  # Ratio dynamics
+  mean_reversion_half_life_months: {2: 3, 5: 4, 10: 5, 20: 6, 30: 6}
+  ratio_vol: {2: 0.14, 5: 0.12, 10: 0.10, 20: 0.08, 30: 0.07}   # annualised, ratio units
+  vol_elasticity_to_move: 0.75       # ratio vol scales with (MOVE / reference)^this
+  tenor_corr_length: 40              # corr(i,j) = exp(-|ti - tj| / this)
+
+  # Munis lag Treasury moves: muni yields move b x the UST move in the month,
+  # so ratios rise in rallies and fall in selloffs before mean-reverting.
+  short_run_beta: {2: 0.50, 5: 0.55, 10: 0.60, 20: 0.70, 30: 0.75}
+
+  # Non-linear demand
+  floor_offset: {2: -0.04, 5: -0.03, 10: -0.01, 20: 0.0, 30: 0.0}   # retail floor vs tax breakeven
+  floor_strength: 6.0                # per year
+  crossover_ceiling: {2: 0.90, 5: 0.90, 10: 0.92, 20: 0.98, 30: 1.02}   # banks/insurers/taxable buyers step in
+  crossover_strength: 4.0            # per year
+  min_treasury_for_fv: 1.0           # %, guards the premium/UST term at very low yields
+  # Rate-level effect on FAIR VALUE: ratio change per +1pp in that tenor's
+  # UST yield, at today's yields (0.025 = -2.5 ratio pts). Munis carry a
+  # semi-fixed yield premium, so ratios compress when Treasury yields are
+  # high and widen when they are low. Front end is most sensitive.
+  rate_level_sensitivity: {2: 0.030, 5: 0.025, 10: 0.025, 20: 0.015, 30: 0.010}
+
+  # Fair-value sensitivities (ratio units per driver unit)
+  sensitivity:
+    supply_per_z:  {2: 0.008, 5: 0.010, 10: 0.012, 20: 0.014, 30: 0.015}
+    flows_per_z:   {2: -0.010, 5: -0.012, 10: -0.015, 20: -0.018, 30: -0.020}
+    move_per_10:   {2: 0.015, 5: 0.012, 10: 0.010, 20: 0.009, 30: 0.008}
+    hy_per_100bp:  {2: 0.008, 5: 0.008, 10: 0.010, 20: 0.012, 30: 0.013}
+    recession:     {2: 0.030, 5: 0.030, 10: 0.025, 20: 0.020, 30: 0.020}
+  view_adjustment: {}                # your own fair-value tilt, e.g. {30: 0.02} = +2 pts at 30Y
+
+# -----------------------------------------------------------------------------
+#  MICRO BLOCK  (muni market technicals)
+# -----------------------------------------------------------------------------
+supply:
+  annual_gross_issuance: 590         # (*) $bn for the next 12m (Barclays 2027: $580-600bn)
+  annual_reinvestment: 450           # $bn coupons + maturities + calls
+  refunding_share: 0.15              # share of issuance that is refunding
+  refunding_rate_elasticity: 0.6     # refundings x exp(0.6) per 1pp fall in 10Y MMD
+  refunding_redemption_offset: 0.8   # share of extra refunding that redeems old bonds
+  issuance_vol: 0.15                 # monthly lognormal noise
+  issuance_seasonality:    {1: 6.0, 2: 7.0, 3: 8.5, 4: 8.0, 5: 9.0, 6: 10.0, 7: 7.5, 8: 8.5, 9: 8.5, 10: 10.0, 11: 8.0, 12: 9.0}
+  reinvestment_seasonality: {1: 9.0, 2: 7.0, 3: 7.0, 4: 7.0, 5: 8.0, 6: 11.0, 7: 12.0, 8: 11.0, 9: 7.0, 10: 7.0, 11: 6.0, 12: 8.0}
+  reference_net_monthly: 5.0         # normal monthly net supply in the valuation window
+  z_scale: 15.0                      # $bn of net supply = 1 standard unit
+  ema_alpha: 0.5                     # smoothing of the supply signal
+
+flows:                               # mutual fund + ETF, $bn per month
+  start: 4.0                         # (*) recent pace (IG inflows, HY outflows)
+  expected: 5.0                      # base-case pace at today's conditions
+  persistence: 0.6
+  vol: 4.0
+  performance_chasing: 2.0           # $bn per 1% monthly excess return (one-month lag)
+  yield_level: 1.0                   # $bn per +1pp of 10Y MMD vs today (yield buyers)
+  move_per_10: -0.5                  # $bn per +10 MOVE vs its expected path
+  hy_per_100bp: -1.5                 # $bn per +100bp HY OAS vs its expected path
+  recession: -4.0
+  index_duration: 6.0
+  reference: 1.0                     # normal monthly flows in the valuation window
+  z_scale: 5.0
+  ema_alpha: 0.5
+
+credit:                              # spreads to MMD AAA, for rated ratio output
+  spreads_10y_bp: {AA: 18, A: 50, BBB: 110}
+  tenor_multiplier: {2: 0.5, 5: 0.7, 10: 1.0, 20: 1.15, 30: 1.2}
+  beta: {AA: 0.6, A: 0.8, BBB: 1.0}
+  hy_elasticity: 0.5                 # log muni spread move per log HY move
+  recession_shock: 0.30
+  fiscal_stress_drift: 0.05          # yearly drift in log spreads (federal aid / Medicaid changes)
+  vol: 0.15
+  mean_reversion: 1.0
+
+tax:
+  marginal_rate: 0.408               # 37% top federal + 3.8% NIIT (made permanent July 2025)
+  marginal_rate_hist: 0.408          # rate during the valuation window
+  change_prob_12m: 0.05              # chance a top-rate change is enacted
+  change_mean: 0.01
+  change_sd: 0.025
+  change_month: null                 # force the month (1..horizon); null = random
+  immediate_passthrough: 0.5         # share of a tax change priced in on the day
+  exemption_threat_prob_12m: 0.05    # credible threat to tax exemption (headline shock)
+  exemption_threat_shock: 0.04       # ratio jump, then mean-reverts
+  exemption_threat_flow_hit: -3.0
+  # Breakeven ratio = 1 - rate. Treasuries are state-tax exempt too, so only
+  # the federal rate matters for the muni vs Treasury comparison.
+  brackets:
+    "24%": 0.24
+    "32%": 0.32
+    "35%": 0.35
+    "37%": 0.37
+    "37% + 3.8% NIIT": 0.408
+
+liquidity_events:                    # March-2020 / Dec-2018 style outflow spirals
+  annual_intensity: 0.20             # events per year at MOVE = reference
+  move_elasticity: 2.0
+  recession_multiplier: 3.0
+  jump_mean: 0.06                    # 10Y ratio jump (6 pts), scaled by tenor
+  jump_sd: 0.03
+  tenor_multiplier: {2: 1.6, 5: 1.3, 10: 1.0, 20: 0.8, 30: 0.7}
+  flow_hit: -10.0
+
+# -----------------------------------------------------------------------------
+#  CHEAP vs EXPENSIVE
+# -----------------------------------------------------------------------------
+#  Higher ratio = munis CHEAP (they yield more vs Treasuries).
+#  Lower ratio  = munis EXPENSIVE (rich).
+valuation:
+  # Point this at your own history to compute mean / sd automatically.
+  # Columns: date, ratio_2, ratio_5, ... (decimals or percent) and optionally
+  # ust_2, ust_5, ... (%). See data/history_template.csv.
+  history_csv: null
+  lookback_years: 5
+
+  # (*) Approximate late-2021..2026 statistics. REPLACE with your MMD history.
+  reference:
+    mean: {2: 0.65, 5: 0.65, 10: 0.70, 20: 0.82, 30: 0.90}
+    sd:   {2: 0.08, 5: 0.07, 10: 0.07, 20: 0.05, 30: 0.05}
+    avg_treasury: {2: 3.9, 5: 3.9, 10: 4.05, 20: 4.4, 30: 4.3}
+
+  bands_z: [-1.0, -0.5, 0.5, 1.0]
+  labels: ["Very Expensive", "Expensive", "Fair", "Cheap", "Very Cheap"]
+  weight_history: 0.5                # composite signal = w_h * z_history + w_m * z_model
+  weight_model: 0.5
+  attribution_tenor: 10              # tenor shown in the driver waterfall
+
+report:
+  ratings: [AA, A, BBB]

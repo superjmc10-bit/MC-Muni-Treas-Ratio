@@ -1,0 +1,22 @@
+# TEMPLATE: copy this file, rename it, and edit. Anything you omit falls back
+# to config/default.yaml. Run it with:  python -m muni_mc run --scenario my_view
+meta:
+  scenario_name: "My curve view"
+  description: "Full target Treasury curve 12 months out plus a couple of muni views."
+treasury:
+  path_mode: custom          # glide from today's curve to curve_target
+  curve_target:              # % par yields at the horizon
+    0.25: 3.90
+    1: 4.10
+    2: 4.30
+    5: 4.55
+    10: 4.85
+    20: 5.25
+    30: 5.25
+macro:
+  fed:
+    market_path_shift_bp: -25
+supply:
+  annual_gross_issuance: 600
+muni:
+  view_adjustment: {30: 0.01}   # I think the long end deserves +1pt more ratio

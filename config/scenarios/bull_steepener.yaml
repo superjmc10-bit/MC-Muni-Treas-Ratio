@@ -1,0 +1,14 @@
+# Soft landing with an earlier pivot: inflation cools, the Fed stops hiking
+# after December and starts cutting in 2H27.
+meta:
+  scenario_name: "Bull steepener (Fed pivot)"
+  description: "Inflation cools toward 2.6%, Fed path ~75bp lower, 2Y -90bp, 10Y -45bp, 30Y -25bp."
+treasury:
+  path_mode: shifts
+  shifts_bp: {2: -90, 5: -70, 10: -45, 30: -25}
+macro:
+  inflation: {target_12m: 2.6}
+  unemployment: {target_12m: 4.6}
+  recession: {prob_12m: 0.15}
+  fed:
+    market_path_shift_bp: -75

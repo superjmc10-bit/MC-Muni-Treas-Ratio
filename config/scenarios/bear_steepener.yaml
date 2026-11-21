@@ -1,0 +1,10 @@
+# Fiscal / term-premium selloff: deficits and record Treasury supply push the
+# long end up while the Fed stays on its expected path.
+meta:
+  scenario_name: "Bear steepener"
+  description: "Term premium rebuilds: 2Y +20bp, 10Y +60bp, 30Y +80bp over 12 months."
+treasury:
+  path_mode: shifts
+  shifts_bp: {2: 20, 5: 40, 10: 60, 30: 80}
+macro:
+  rate_vol: {long_run: 115}          # selloffs come with higher vol

@@ -1,0 +1,3 @@
+# Base case: exactly config/default.yaml. Listed so `--compare` runs include it.
+meta:
+  scenario_name: "Base case"
